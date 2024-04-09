@@ -1,4 +1,4 @@
-# minecraft
+# minecraft-server-settings
 Minecraft Server Bedrock Settings
 
 ## About
