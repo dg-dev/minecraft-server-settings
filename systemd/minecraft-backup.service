@@ -1,0 +1,7 @@
+[Unit]
+Description=Minecraft Server Backup
+Requisite=minecraft.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/free

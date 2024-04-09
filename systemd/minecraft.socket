@@ -1,0 +1,9 @@
+[Unit]
+Description=Minecraft Server FIFO Socket for Commands via STDIN
+#PartOf=minecraft.service
+BindsTo=minecraft.service
+
+[Socket]
+Service=minecraft.service
+ListenFIFO=/opt/minecraft/temporary/minecraft.stdin
+RemoveOnStop=true

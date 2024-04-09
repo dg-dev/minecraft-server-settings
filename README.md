@@ -1,2 +1,2 @@
 # minecraft
-Minecraft Server Bedrock
+Minecraft Server Bedrock Settings
