@@ -5,6 +5,7 @@ Minecraft Server Bedrock Settings
 This is mostly a small, personal project to learn some systemd. Currently a work in progress but once complete will consists of scripts, settings and systemd units for running a basic Minecraft Bedrock server on Linux as a systemd service that can perform automatic backups.
 
 ## Installation
+* Create minecraft user with homedir /opt/minecraft and nologin shell
 * Create dirs /opt/minecraft/{backup,server,temporary,utilities}
 * Copy scripts to /opt/minecraft/utilities and confirm they're executable
 * Copy systemd units to /etc/systemd/system and do a systemctl daemon-reload
