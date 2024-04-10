@@ -16,9 +16,7 @@ Group=minecraft
 Restart=on-failure
 RestartSec=15
 ExecStart=/opt/minecraft/server/latest/bedrock_server
-#ExecStop=/usr/bin/bash -c 'echo stop > /opt/minecraft/temporary/minecraft.stdin'
-ExecStop=/opt/minecraft/utilities/command.sh stop
-ExecStop=/usr/bin/bash -c 'sleep 5'
+ExecStop=/opt/minecraft/utilities/stop.sh $MAINPID
 
 [Install]
 WantedBy=multi-user.target
