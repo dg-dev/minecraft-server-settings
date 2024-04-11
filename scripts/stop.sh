@@ -1,7 +1,7 @@
 #!/bin/sh
 
 max_attempts=300
-command_path=/opt/minecraft/utilities/command.sh
+command_path=/opt/minecraft/scripts/command.sh
 
 [ -z "$1" ] && exit 1
 

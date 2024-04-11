@@ -16,7 +16,7 @@ Group=minecraft
 Restart=on-failure
 RestartSec=15
 ExecStart=/opt/minecraft/server/latest/bedrock_server
-ExecStop=/opt/minecraft/utilities/stop.sh $MAINPID
+ExecStop=/opt/minecraft/scripts/stop.sh $MAINPID
 
 [Install]
 WantedBy=multi-user.target

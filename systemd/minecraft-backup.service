@@ -4,4 +4,4 @@ Requisite=minecraft.service
 
 [Service]
 Type=oneshot
-ExecStart=/opt/minecraft/utilities/backup.sh
+ExecStart=/opt/minecraft/scripts/backup.sh
