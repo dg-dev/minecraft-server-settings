@@ -21,18 +21,21 @@ while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
         if [ "$(echo "$LINE" | cut -f '1-2' -d ' ')" = '-- cursor:' ]; then
             start_cursor="$(echo "$LINE" | cut -f '3' -d ' ')"
         elif [ "$backup_state" -eq 1 ] && [ ! -z "$(echo "$LINE" | grep 'Saving\.\.\.$')" ]; then
+            echo "LINE (${backup_state}): $LINE"
             "${command_path}" save query
             backup_state=2
-            echo "LINE (${backup_state}): $LINE"
         elif [ "$backup_state" -eq 2 ] && [ ! -z "$(echo "$LINE" | grep 'Data saved\. Files are now ready to be copied\.$')" ]; then
+            echo "LINE (${backup_state}): $LINE"
             backup_state=3
-            echo "LINE (${backup_state}): $LINE"
         elif [ "$backup_state" -eq 2 ] && [ ! -z "$(echo "$LINE" | grep 'A previous save has not been completed\.$')" ]; then
-            "${command_path}" save query
             echo "LINE (${backup_state}): $LINE"
+            "${command_path}" save query
         elif [ "$backup_state" -eq 3 ]; then
+            echo "LINE (${backup_state}): $LINE"
             # check if this is correct data, back up, resume and exit
             "$command_path" save resume
+            backup_state=4
+        elif [ "$backup_state" -eq 4 ] && [ ! -z "$(echo "$LINE" | grep 'Changes to the world are resumed\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
             exit 0
         else
