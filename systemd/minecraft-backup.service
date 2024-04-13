@@ -5,3 +5,4 @@ Requisite=minecraft.service
 [Service]
 Type=oneshot
 ExecStart=/opt/minecraft/scripts/backup.sh
+TimeoutStartSec=90
