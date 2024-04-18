@@ -26,15 +26,18 @@ while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
             backup_state=2
         elif [ "$backup_state" -eq 2 ] && [ ! -z "$(echo "$LINE" | grep 'Data saved\. Files are now ready to be copied\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
+            "${command_path}" save query
             backup_state=3
         elif [ "$backup_state" -eq 2 ] && [ ! -z "$(echo "$LINE" | grep 'A previous save has not been completed\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
             "${command_path}" save query
-        elif [ "$backup_state" -eq 3 ]; then
+        elif [ "$backup_state" -eq 3 ] && [ ! -z "$(echo "$LINE" | grep 'Data saved\. Files are now ready to be copied\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
-            # check if this is correct data, back up, resume and exit
             "$command_path" save resume
             backup_state=4
+        elif [ "$backup_state" -eq 3 ]; then
+            echo "LINE (${backup_state}): $LINE"
+            # concatenate all the info into a single line and process
         elif [ "$backup_state" -eq 4 ] && [ ! -z "$(echo "$LINE" | grep 'Changes to the world are resumed\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
             exit 0
