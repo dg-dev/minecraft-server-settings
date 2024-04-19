@@ -6,6 +6,7 @@ time_limit_sec=60
 backup_state=0
 start_epoch=$(date +%s)
 start_cursor=$(journalctl -u minecraft.service --show-cursor -n 0 | grep '^-- cursor: ' | cut -f 3 -d ' ')
+file_list=""
 
 while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
     [ -z "$start_cursor" ] && exit 1
@@ -33,11 +34,13 @@ while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
             "${command_path}" save query
         elif [ "$backup_state" -eq 3 ] && [ ! -z "$(echo "$LINE" | grep 'Data saved\. Files are now ready to be copied\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
+            echo "LIST: ${file_list}"
+            # backup the files on the list here
             "$command_path" save resume
             backup_state=4
-        elif [ "$backup_state" -eq 3 ]; then
+        elif [ "$backup_state" -eq 3 ] && [ ! -z "$(echo "$LINE" | grep -Ev '^\[[0-9-]+ [0-9:]+ [A-Z]+\] ')" ]; then
             echo "LINE (${backup_state}): $LINE"
-            # concatenate all the info into a single line and process
+            file_list="${file_list}$LINE"
         elif [ "$backup_state" -eq 4 ] && [ ! -z "$(echo "$LINE" | grep 'Changes to the world are resumed\.$')" ]; then
             echo "LINE (${backup_state}): $LINE"
             exit 0
