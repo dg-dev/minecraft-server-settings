@@ -1,7 +1,9 @@
 #!/bin/sh
 
 
-backups_dir=/opt/minecraft/backup
+server_dir=/opt/minecraft/server
+backup_dir=/opt/minecraft/backup
+temporary_dir=/opt/minecraft/temporary
 command_path=/opt/minecraft/scripts/command.sh
 time_limit_sec=60
 debug=2
@@ -10,6 +12,32 @@ debug_print() {
     debug_level="${1:?debug_level}"
     shift
     [ "$debug_level" -le "${debug:-0}" ] && echo "$*"
+}
+
+backup_world() {
+    world_files="${1:?world_files}"
+    # create temp dir e.g., 20240428191654 ensuring it's unique
+    world_backup_name=""
+    until [ ! -z "$world_backup_name" ] && \
+            [ ! -d "${temporary_dir}/$world_backup_name" ] && \
+            [ ! -d "${backup_dir}/${world_backup_name}.tar.gz" ]; do
+        [ -z "$world_backup_name" ] || sleep 1
+        world_backup_name="$(date '+%Y-%m-%d_%H%M%S')"
+    done
+    mkdir -p "${temporary_dir}/${world_backup_name}" || return 1
+    # iterate over $world_files
+    while IFS=':' read -r world_file_path world_file_size 0<&5; do
+        echo "$world_file_path" --- "$world_file_size"
+        # create world dirs
+        # copy files
+        # truncate files
+    done 5<<EOT
+$(echo "$world_files" | sed 's/, \{0,1\}/\n/g')
+EOT
+    # tar/gzip the whole temp folder
+    # move tar.gz to backup_dir only if no errors found during entire process
+    # clean up
+    #rm -rf "${temporary_dir}/${world_backup_name}"
 }
 
 backup_state=0
@@ -67,7 +95,7 @@ while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
                     3 )
                         debug_print 1 "LINE (${backup_state}): $LINE"
                         debug_print 3 '$file_list: '"$file_list"
-                        # backup the files on the list here
+                        backup_world "$file_list"
                         debug_print 2 ">>> save resume"
                         "$command_path" save resume
                         backup_state=4
