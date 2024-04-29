@@ -1,7 +1,6 @@
 #!/bin/sh
 
-
-server_dir=/opt/minecraft/server
+server_dir=/opt/minecraft/server/latest
 backup_dir=/opt/minecraft/backup
 temporary_dir=/opt/minecraft/temporary
 command_path=/opt/minecraft/scripts/command.sh
@@ -24,20 +23,30 @@ backup_world() {
         [ -z "$world_backup_name" ] || sleep 1
         world_backup_name="$(date '+%Y-%m-%d_%H%M%S')"
     done
-    mkdir -p "${temporary_dir}/${world_backup_name}" || return 1
+    mkdir -p "${temporary_dir}/${world_backup_name}"
     # iterate over $world_files
     while IFS=':' read -r world_file_path world_file_size 0<&5; do
         echo "$world_file_path" --- "$world_file_size"
+        [ -z "$world_file_path" ] || [ -z "$world_file_size" ] && continue
         # create world dirs
+        mkdir -p "${temporary_dir}/${world_backup_name}/$(dirname "$world_file_path")"
         # copy files
+        cp "${server_dir}/worlds/${world_file_path}" \
+            "${temporary_dir}/${world_backup_name}/$(dirname "$world_file_path")/"
         # truncate files
+        truncate "${temporary_dir}/${world_backup_name}/$world_file_path" \
+            -s "$world_file_size"
     done 5<<EOT
 $(echo "$world_files" | sed 's/, \{0,1\}/\n/g')
 EOT
     # tar/gzip the whole temp folder
     # move tar.gz to backup_dir only if no errors found during entire process
+    mkdir -p "$backup_dir"
+    tar czf "${backup_dir}/${world_backup_name}.tar.gz" \
+        -C "${temporary_dir}" "${world_backup_name}"
     # clean up
-    #rm -rf "${temporary_dir}/${world_backup_name}"
+    [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
+        rm -rf "${temporary_dir}/${world_backup_name}"
 }
 
 backup_state=0
@@ -47,7 +56,6 @@ start_cursor=$(journalctl -u minecraft.service --show-cursor -n 0 | grep '^-- cu
 debug_print 4 '$start_cursor: '"$start_cursor"
 file_list=""
 debug_print 3 '$file_list:'"$file_list"
-
 
 while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
     [ -z "$start_cursor" ] && exit 1
