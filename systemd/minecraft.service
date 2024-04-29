@@ -1,6 +1,5 @@
 [Unit]
 Description=Minecraft Server
-Wants=minecraft-backup.timer
 After=network.target
 
 [Service]

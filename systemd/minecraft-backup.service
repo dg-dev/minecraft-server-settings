@@ -1,6 +1,7 @@
 [Unit]
 Description=Minecraft Server Backup
 Requisite=minecraft.service
+After=minecraft.service
 
 [Service]
 Type=oneshot

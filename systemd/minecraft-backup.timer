@@ -1,8 +1,10 @@
 [Unit]
 Description=Minecraft Server Backup Timer
-BindsTo=minecraft.service
 
 [Timer]
 Unit=minecraft-backup.service
 #OnCalendar=*-*-* *:*:00
 OnCalendar=hourly
+
+[Install]
+WantedBy=timers.target

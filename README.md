@@ -14,3 +14,4 @@ This is mostly a small, personal project to learn some systemd. Currently a work
 * Create a symlink called "latest" that points to the above server dir (example: ln -s /opt/minecraft/server/bedrock-server-1.20.73.01 /opt/minecraft/server/latest)
 * Overwrite the default server settings with the ones included here and make any additional changes
 * Enable and start the minecraft.service
+* Optionally enable and start minecraft-backup.timer (set to hourly intervals)
