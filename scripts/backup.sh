@@ -23,19 +23,26 @@ backup_world() {
         [ -z "$world_backup_name" ] || sleep 1
         world_backup_name="$(date '+%Y-%m-%d_%H%M%S')"
     done
-    mkdir -p "${temporary_dir}/${world_backup_name}"
+    server_base_dir="${server_dir}/worlds"
+    temporary_base_dir="${temporary_dir}/${world_backup_name}"
+    mkdir -p "$temporary_base_dir"
     # iterate over $world_files
     while IFS=':' read -r world_file_path world_file_size 0<&5; do
         echo "$world_file_path" --- "$world_file_size"
         [ -z "$world_file_path" ] || [ -z "$world_file_size" ] && continue
         # create world dirs
-        mkdir -p "${temporary_dir}/${world_backup_name}/$(dirname "$world_file_path")"
+        current_temporary_file="${temporary_base_dir}/$world_file_path"
+        current_temporary_dir="$(dirname "$current_temporary_file")"
+        current_server_file="${server_base_dir}/${world_file_path}"
+        current_server_dir="$(dirname "$current_server_file")"
+        mkdir -p "$current_temporary_dir"
         # copy files
-        cp "${server_dir}/worlds/${world_file_path}" \
-            "${temporary_dir}/${world_backup_name}/$(dirname "$world_file_path")/"
+        cp "$current_server_file" "${current_temporary_dir}/"
         # truncate files
-        truncate "${temporary_dir}/${world_backup_name}/$world_file_path" \
-            -s "$world_file_size"
+        truncate "$current_temporary_file" -s "$world_file_size"
+        # restore timestamps
+        touch -r "$current_server_file" "$current_temporary_file"
+        touch -r "$current_server_dir" "$current_temporary_dir"
     done 5<<EOT
 $(echo "$world_files" | sed 's/, \{0,1\}/\n/g')
 EOT
