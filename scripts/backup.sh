@@ -13,7 +13,18 @@ debug_print() {
     [ "$debug_level" -le "${debug:-0}" ] && echo "$*"
 }
 
-backup_world() {
+backup_simple() {
+    prepared_dir="${1:?prepared_dir}"
+    prepared_name="$(basename "$prepared_dir")"
+    backup_dir_simple="${backup_dir}/simple"
+    mkdir -p "$backup_dir_simple"
+    # tar/gzip the whole temp folder
+    # move tar.gz to backup_dir only if no errors found during entire process
+    tar czf "${backup_dir_simple}/${prepared_name}.tar.gz" \
+        -C "$temporary_dir" "$prepared_name"
+}
+
+prepare_world_files() {
     world_files="${1:?world_files}"
     # create temp dir e.g., 20240428191654 ensuring it's unique
     world_backup_name=""
@@ -46,14 +57,12 @@ backup_world() {
     done 5<<EOT
 $(echo "$world_files" | sed 's/, \{0,1\}/\n/g')
 EOT
-    # tar/gzip the whole temp folder
-    # move tar.gz to backup_dir only if no errors found during entire process
+    # backup
     mkdir -p "$backup_dir"
-    tar czf "${backup_dir}/${world_backup_name}.tar.gz" \
-        -C "${temporary_dir}" "${world_backup_name}"
+    backup_simple "$temporary_base_dir"
     # clean up
     [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
-        rm -rf "${temporary_dir}/${world_backup_name}"
+        rm -rf "$temporary_base_dir"
 }
 
 backup_state=0
@@ -110,7 +119,7 @@ while [ "$(expr "$(date +%s)" - "$start_epoch")" -lt "$time_limit_sec" ]; do
                     3 )
                         debug_print 1 "LINE (${backup_state}): $LINE"
                         debug_print 3 '$file_list: '"$file_list"
-                        backup_world "$file_list"
+                        prepare_world_files "$file_list"
                         debug_print 2 ">>> save resume"
                         "$command_path" save resume
                         backup_state=4
