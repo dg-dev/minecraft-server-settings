@@ -2,6 +2,7 @@
 
 server_dir=/opt/minecraft/server/latest
 backup_dir=/opt/minecraft/backup
+prepared_dir=/opt/minecraft/backup/prepared
 temporary_dir=/opt/minecraft/temporary
 command_path=/opt/minecraft/scripts/command.sh
 time_limit_sec=60
@@ -14,14 +15,14 @@ debug_print() {
 }
 
 backup_simple() {
-    prepared_dir="${1:?prepared_dir}"
-    prepared_name="$(basename "$prepared_dir")"
+    prepared_name="${1:?prepared_name}"
+    prepared_dir="${2:?prepared_dir}"
     backup_dir_simple="${backup_dir}/simple"
     mkdir -p "$backup_dir_simple"
     # tar/gzip the whole temp folder
     # move tar.gz to backup_dir only if no errors found during entire process
     tar czf "${backup_dir_simple}/${prepared_name}.tar.gz" \
-        -C "$temporary_dir" "$prepared_name"
+        -C "$prepared_dir" .
 }
 
 prepare_world_files() {
@@ -29,17 +30,16 @@ prepare_world_files() {
     # create temp dir e.g., 20240428191654 ensuring it's unique
     world_backup_name=""
     until [ ! -z "$world_backup_name" ] && \
-            [ ! -d "${temporary_dir}/$world_backup_name" ] && \
-            [ ! -d "${backup_dir}/${world_backup_name}.tar.gz" ]; do
-        [ -z "$world_backup_name" ] || sleep 1
-        world_backup_name="$(date '+%Y-%m-%d_%H%M%S')"
+            [ ! -d "${temporary_dir}/$world_backup_name" ]; do
+        world_backup_name="$(date '+%Y-%m-%d_%H%M%S_%N')"
     done
     server_base_dir="${server_dir}/worlds"
     temporary_base_dir="${temporary_dir}/${world_backup_name}"
     mkdir -p "$temporary_base_dir"
+    # create prepared dir
+    mkdir -p "$prepared_dir"
     # iterate over $world_files
     while IFS=':' read -r world_file_path world_file_size 0<&5; do
-        echo "$world_file_path" --- "$world_file_size"
         [ -z "$world_file_path" ] || [ -z "$world_file_size" ] && continue
         # create world dirs
         current_temporary_file="${temporary_base_dir}/$world_file_path"
@@ -47,19 +47,31 @@ prepare_world_files() {
         current_server_file="${server_base_dir}/${world_file_path}"
         current_server_dir="$(dirname "$current_server_file")"
         mkdir -p "$current_temporary_dir"
-        # copy files
+        # copy files to temp dir for processing
         cp "$current_server_file" "${current_temporary_dir}/"
         # truncate files
         truncate "$current_temporary_file" -s "$world_file_size"
-        # restore timestamps
-        touch -r "$current_server_file" "$current_temporary_file"
-        touch -r "$current_server_dir" "$current_temporary_dir"
+        # copy changed files to prepared dir
+        current_prepared_file="${prepared_dir}/$world_file_path"
+        current_prepared_dir="$(dirname "$current_prepared_file")"
+        mkdir -p "$current_prepared_dir"
+        cmp -s "$current_prepared_file" "$current_temporary_file" || \
+            cp "$current_temporary_file" "$current_prepared_dir"
     done 5<<EOT
 $(echo "$world_files" | sed 's/, \{0,1\}/\n/g')
 EOT
+    # remove irrelevant old dirs/files from prepared dir (sync)
+    world_level_name="$(echo "$world_files" | cut -d '/' -f 1)"
+    prepared_world_dir="$(realpath "${prepared_dir}/${world_level_name}")"
+    temporary_world_dir="$(realpath "${temporary_base_dir}/${world_level_name}")"
+    find "$prepared_world_dir" -mindepth 1 -depth -exec sh -c '
+        relative_path="$(realpath --relative-to="'"$prepared_world_dir"'" "{}")"
+        check_path="'"${temporary_world_dir}"'/${relative_path}"
+        [ ! -e "$check_path" ] && { [ -d "{}" ] && rmdir "{}" || rm "{}"; }
+        ' \;
     # backup
     mkdir -p "$backup_dir"
-    backup_simple "$temporary_base_dir"
+    backup_simple "$world_backup_name" "$prepared_dir"
     # clean up
     [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
         rm -rf "$temporary_base_dir"
