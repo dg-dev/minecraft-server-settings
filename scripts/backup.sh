@@ -25,6 +25,31 @@ backup_simple() {
         -C "$prepared_dir" .
 }
 
+backup_hardlinked() {
+    prepared_name="${1:?prepared_name}"
+    prepared_dir="${2:?prepared_dir}"
+    backup_dir_hardlinked="${backup_dir}/hardlinked"
+    backup_dir_path="${backup_dir_hardlinked}/${prepared_name}"
+    backup_dir_link="${backup_dir_hardlinked}/last"
+    mkdir -p "$backup_dir_hardlinked"
+    mkdir -p "$backup_dir_path"
+    find "$prepared_dir" -type f -mindepth 1 -exec sh -c '
+        relative_path="$(realpath --relative-to="'"$prepared_dir"'" "{}")"
+        backup_last_dir="$(realpath "'"$backup_dir_link"'")"
+        backup_new_dir="'"$backup_dir_path"'"
+        current_last_path="${backup_last_dir}/${relative_path}"
+        current_last_dir="$(dirname "$current_last_path")"
+        current_new_path="${backup_new_dir}/${relative_path}"
+        current_new_dir="$(dirname "$current_new_path")"
+        mkdir -p "$current_new_dir"
+        cmp -s "{}" "$current_last_path" && \
+            ln "$current_last_path" "$current_new_path" || \
+            cp "{}" "$current_new_path"
+        ' \;
+    [ -L "$backup_dir_link" ] && rm "$backup_dir_link"
+    ln -s "$backup_dir_path" "$backup_dir_link"
+}
+
 prepare_world_files() {
     world_files="${1:?world_files}"
     # create temp dir e.g., 20240428191654 ensuring it's unique
@@ -71,7 +96,7 @@ EOT
         ' \;
     # backup
     mkdir -p "$backup_dir"
-    backup_simple "$world_backup_name" "$prepared_dir"
+    backup_hardlinked "$world_backup_name" "$prepared_dir"
     # clean up
     [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
         rm -rf "$temporary_base_dir"
