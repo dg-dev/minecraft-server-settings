@@ -50,6 +50,35 @@ backup_hardlinked() {
     ln -s "$backup_dir_path" "$backup_dir_link"
 }
 
+backup_hardlinkedblobs() {
+    prepared_name="${1:?prepared_name}"
+    prepared_dir="${2:?prepared_dir}"
+    backup_dir_hardlinkedblobs="${backup_dir}/hardlinkedblobs"
+    backup_dir_blobs_dir="${backup_dir_hardlinkedblobs}/.blobs"
+    backup_dir_path="${backup_dir_hardlinkedblobs}/${prepared_name}"
+    hashsum_path="/usr/bin/sha256sum"
+    mkdir -p "$backup_dir_hardlinkedblobs"
+    mkdir -p "$backup_dir_blobs_dir"
+    mkdir -p "$backup_dir_path"
+    find "$prepared_dir" -type f -mindepth 1 -exec sh -c '
+        relative_path="$(realpath --relative-to="'"$prepared_dir"'" "{}")"
+        backup_new_dir="'"$backup_dir_path"'"
+        current_new_path="${backup_new_dir}/${relative_path}"
+        current_new_dir="$(dirname "$current_new_path")"
+        current_hash="$("'"$hashsum_path"'" "{}" | cut -d " " -f 1)"
+        current_hash_prefix="$(echo "$current_hash" | cut -b 1-2)"
+        current_hash_suffix="$(echo "$current_hash" | cut -b 3-)"
+        current_blob_path="'"$backup_dir_blobs_dir"'/${current_hash_prefix}/${current_hash_suffix}"
+        current_blob_dir="$(dirname "$current_blob_path")"
+        mkdir -p "$current_new_dir"
+        [ ! -f "$current_blob_path" ] && { \
+            mkdir -p "$current_blob_dir"
+            cp "{}" "$current_blob_path"
+        }
+        ln "$current_blob_path" "$current_new_path"
+        ' \;
+}
+
 prepare_world_files() {
     world_files="${1:?world_files}"
     # create temp dir e.g., 20240428191654 ensuring it's unique
@@ -96,7 +125,7 @@ EOT
         ' \;
     # backup
     mkdir -p "$backup_dir"
-    backup_hardlinked "$world_backup_name" "$prepared_dir"
+    backup_hardlinkedblobs "$world_backup_name" "$prepared_dir"
     # clean up
     [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
         rm -rf "$temporary_base_dir"
