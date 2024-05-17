@@ -77,6 +77,10 @@ backup_hardlinkedblobs() {
         }
         ln "$current_blob_path" "$current_new_path"
         ' \;
+        find "$backup_dir_blobs_dir" -type f -mindepth 1 -links 1 \
+            -exec rm "{}" \;
+        find "$backup_dir_blobs_dir" -depth -type d -mindepth 1 -empty \
+            -exec rmdir "{}" \;
 }
 
 prepare_world_files() {
