@@ -83,6 +83,22 @@ backup_hardlinkedblobs() {
             -exec rmdir "{}" \;
 }
 
+backup_restic() {
+    prepared_dir="${1:?prepared_dir}"
+    backup_dir_restic="${backup_dir}/restic"
+    restic_key_path=/root/.minecraft.key
+    command -v restic > /dev/null 2>&1 || return 1
+    mkdir -p "$backup_dir_restic"
+    [ ! -f "$restic_key_path" ] && {\
+        tr -cd 'A-Za-z0-9' < /dev/urandom | head -c 32 > "$restic_key_path"
+        chmod 600 "$restic_key_path"
+    }
+    export RESTIC_REPOSITORY="$backup_dir_restic"
+    export RESTIC_PASSWORD_FILE="$restic_key_path"
+    restic cat config > /dev/null 2>&1 || { restic --quiet init || return 2; }
+    restic --quiet backup "$prepared_dir"
+}
+
 prepare_world_files() {
     world_files="${1:?world_files}"
     # create temp dir e.g., 20240428191654 ensuring it's unique
@@ -129,7 +145,10 @@ EOT
         ' \;
     # backup
     mkdir -p "$backup_dir"
+    #backup_simple "$world_backup_name" "$prepared_dir"
+    #backup_hardlinked "$world_backup_name" "$prepared_dir"
     backup_hardlinkedblobs "$world_backup_name" "$prepared_dir"
+    #backup_restic "$prepared_dir"
     # clean up
     [ ! -z "$temporary_dir" ] && [ ! -z "$world_backup_name" ] && \
         rm -rf "$temporary_base_dir"
