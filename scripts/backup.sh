@@ -96,7 +96,8 @@ backup_restic() {
     export RESTIC_REPOSITORY="$backup_dir_restic"
     export RESTIC_PASSWORD_FILE="$restic_key_path"
     restic cat config > /dev/null 2>&1 || { restic --quiet init || return 2; }
-    restic --quiet backup "$prepared_dir"
+    restic --quiet backup "$prepared_dir" --tag minecraft
+    restic --quiet forget --tag=minecraft --prune --keep-within 1d --keep-within-hourly 7d --keep-within-weekly 3m --keep-within-monthly 1y --keep-within-yearly 10y 
 }
 
 prepare_world_files() {
